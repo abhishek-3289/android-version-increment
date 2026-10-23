@@ -1,47 +1,56 @@
 #!/bin/bash
+set -euo pipefail
 
-VERSION=$1
+INCREMENT_TYPE=${1:-patch}
+OUTPUT_FILE=${GITHUB_OUTPUT:-/dev/stdout}
 
-# Fetch latest tag, fallback to v0.0.0 if doesn't exist
-CURRENT_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-
-if [[ $CURRENT_VERSION == '' ]]
-then
-  CURRENT_VERSION='v0.0.0'
+if ! git fetch --tags --force --quiet 2>/dev/null; then
+  echo "::warning::Could not fetch tags from remote; using tags available locally"
 fi
 
-# remove v from tag and split tag by . into an array
-VERSION_WITHOUT_V="${CURRENT_VERSION:1}"
-CURRENT_VERSION_PARTS=(${VERSION_WITHOUT_V//./ })
+LATEST_TAG=$(
+  git tag --list \
+    | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' \
+    | awk '{ version = $0; sub(/^v/, "", version); print version " " $0 }' \
+    | sort -t. -k1,1n -k2,2n -k3,3n \
+    | tail -n 1 \
+    | cut -d' ' -f2 \
+    || true
+)
+LATEST_TAG=${LATEST_TAG:-v0.0.0}
 
-# get number parts and increment
-MAJOR=${CURRENT_VERSION_PARTS[0]}
-MINOR=${CURRENT_VERSION_PARTS[1]}
-PATCH=${CURRENT_VERSION_PARTS[2]}
+[[ $LATEST_TAG =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]
+MAJOR=${BASH_REMATCH[1]}
+MINOR=${BASH_REMATCH[2]}
+PATCH=${BASH_REMATCH[3]}
+OLD_VERSION="$MAJOR.$MINOR.$PATCH"
 
-if [[ $VERSION == 'major' ]]
-then
-  MAJOR=$((MAJOR+1))
-  MINOR='0'
-  PATCH='0'
-elif [[ $VERSION == 'minor' ]]
-then
-  MINOR=$((MINOR+1))
-  PATCH='0'
-elif [[ $VERSION == 'patch' ]]
-then
-  PATCH=$((PATCH+1))
-else
-  echo "No version type (https://semver.org/) or incorrect type specified, try: -v [major, minor, patch]"
-  exit 1
-fi
+case $INCREMENT_TYPE in
+  major)
+    MAJOR=$((MAJOR + 1))
+    MINOR=0
+    PATCH=0
+    ;;
+  minor)
+    MINOR=$((MINOR + 1))
+    PATCH=0
+    ;;
+  patch)
+    PATCH=$((PATCH + 1))
+    ;;
+  *)
+    echo "::error::increment-type must be one of major, minor, patch (https://semver.org/), got '$INCREMENT_TYPE'"
+    exit 1
+    ;;
+esac
 
 NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+echo "Latest tag: $LATEST_TAG -> new version: $NEW_VERSION"
 {
-  echo latest_tag=$CURRENT_VERSION
-  echo old_version=$VERSION_WITHOUT_V
-  echo new_version=$NEW_VERSION
-  echo major_version=$MAJOR
-  echo minor_version=$MINOR
-  echo patch_version=$PATCH
-} >> "$GITHUB_OUTPUT"
+  echo "latest_tag=$LATEST_TAG"
+  echo "old_version=$OLD_VERSION"
+  echo "new_version=$NEW_VERSION"
+  echo "major_version=$MAJOR"
+  echo "minor_version=$MINOR"
+  echo "patch_version=$PATCH"
+} >> "$OUTPUT_FILE"
