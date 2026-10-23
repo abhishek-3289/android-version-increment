@@ -45,7 +45,7 @@ tasks.register('updateReleaseNotesVersion') {
     doFirst {
         def version = "v${semver.major}.${semver.minor}.${semver.patch}"
         ant.replaceregexp(match: '^v\\d+.\\d+.\\d+', replace: version, flags: 's', byline: false) {
-            fileset(dir: '<dir/path>', includes: '**/*.txt')
+            fileset(dir: 'release-notes', includes: '**/*.txt')
         }
     }
 }
@@ -71,3 +71,27 @@ tasks.register('updateReleaseNotesVersion') {
 4. **new-version-major** :- Incremented major version.
 5. **new-version-minor** :- Incremented minor version.
 6. **new-version-patch** :- Incremented patch version.
+
+## Examples 🧪
+
+- [`examples/bump-version-pr.yml`](examples/bump-version-pr.yml) bumps the version on demand and opens a pull request with the change. The repository setting *Allow GitHub Actions to create and approve pull requests* must be enabled.
+- [`examples/bump-version-and-tag.yml`](examples/bump-version-and-tag.yml) uses its own JDK (`setup-java: false`), commits the bump, pushes a `vX.Y.Z` tag and builds the release APK.
+- [`examples/gradle-project`](examples/gradle-project) is a minimal Gradle project wired with the semver plugin and the `updateReleaseNotesVersion` task. CI runs the action against it.
+
+## Development 🛠️
+
+```bash
+bash tests/version_script_test.sh
+```
+
+The tests create throwaway git repositories, so they need only `git` and `bash`. To try the Gradle side locally:
+
+```bash
+cd examples/gradle-project
+./gradlew incrementBuildMeta -Dversion.major=1 -Dversion.minor=2 -Dversion.patch=0 updateReleaseNotesVersion
+```
+
+| Workflow | Trigger | What it does |
+|:---------|:--------|:-------------|
+| [CI](.github/workflows/ci.yml) | push to `main`, pull requests | ShellCheck, actionlint, unit tests on Ubuntu and macOS, and an integration run of the action against `examples/gradle-project`. |
+| [Release](.github/workflows/release.yml) | manual (`patch` / `minor` / `major`) | Runs CI, calculates the next version with this action's own script, publishes a GitHub release with generated notes, and moves the `vMAJOR` tag. |

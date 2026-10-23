@@ -1,0 +1,12 @@
+plugins {
+    id 'net.thauvin.erik.gradle.semver' version '1.0.4'
+}
+
+tasks.register('updateReleaseNotesVersion') {
+    doFirst {
+        def version = "v${semver.major}.${semver.minor}.${semver.patch}"
+        ant.replaceregexp(match: '^v\\d+.\\d+.\\d+', replace: version, flags: 's', byline: false) {
+            fileset(dir: 'release-notes', includes: '**/*.txt')
+        }
+    }
+}
