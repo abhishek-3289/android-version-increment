@@ -1,4 +1,4 @@
-# Android App Version Increment ➕
+# Android Gradle Version Increment ➕
 
 [![My Skills](https://skillicons.dev/icons?i=githubactions,gradle,androidstudio&perline=3)](https://skillicons.dev)
 
