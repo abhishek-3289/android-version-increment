@@ -101,3 +101,6 @@ __tests__/runner/*
 # IntelliJ IDEA config files
 ../.idea/
 *.iml
+# Example Gradle project
+examples/gradle-project/.gradle/
+examples/gradle-project/build/

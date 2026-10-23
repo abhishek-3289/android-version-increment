@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: ShellCheck
+        run: shellcheck version_script.sh tests/*.sh
+
+      - name: actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color .github/workflows/*.yml examples/*.yml
+
+  unit-tests:
+    name: Unit tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run version script tests
+        run: bash tests/version_script_test.sh
+
+  integration:
+    name: Integration (bumps the example Gradle project)
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run action
+        id: bump
+        uses: ./
+        with:
+          increment-type: minor
+          update-release-notes: true
+          working-directory: examples/gradle-project
+
+      - name: Verify example project was updated
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.new-version }}
+          MAJOR: ${{ steps.bump.outputs.new-version-major }}
+          MINOR: ${{ steps.bump.outputs.new-version-minor }}
+          PATCH: ${{ steps.bump.outputs.new-version-patch }}
+        run: |
+          [[ $NEW_VERSION =~ ^[0-9]+\.[0-9]+\.0$ ]] || { echo "::error::unexpected new-version '$NEW_VERSION'"; exit 1; }
+          [[ $NEW_VERSION == "$MAJOR.$MINOR.$PATCH" ]] || { echo "::error::version parts do not match '$NEW_VERSION'"; exit 1; }
+          grep -qx "version.semver=$NEW_VERSION" examples/gradle-project/version.properties || { cat examples/gradle-project/version.properties; echo "::error::version.properties not updated"; exit 1; }
+          [[ $(head -n 1 examples/gradle-project/release-notes/whatsnew-en-US.txt) == "v$NEW_VERSION" ]] || { cat examples/gradle-project/release-notes/whatsnew-en-US.txt; echo "::error::release notes not updated"; exit 1; }
+          git diff --stat
