@@ -39,22 +39,22 @@ inputs:
 outputs:
   latest-tag:
     description: Latest tag or default v0.0.0 if tag does not exist
-    value: ${{ steps.version.outputs.latest_tag }}
+    value: ${{ steps.version.outputs.latest-tag }}
   tag-version:
     description: Tag version without v.
-    value: ${{ steps.version.outputs.old_version }}
+    value: ${{ steps.version.outputs.tag-version }}
   new-version:
     description: Incremented version
-    value: ${{ steps.version.outputs.new_version }}
+    value: ${{ steps.version.outputs.new-version }}
   new-version-major:
     description: Incremented version major
-    value: ${{ steps.version.outputs.major_version }}
+    value: ${{ steps.version.outputs.new-version-major }}
   new-version-minor:
     description: Incremented version minor
-    value: ${{ steps.version.outputs.minor_version }}
+    value: ${{ steps.version.outputs.new-version-minor }}
   new-version-patch:
     description: Incremented version patch
-    value: ${{ steps.version.outputs.patch_version }}
+    value: ${{ steps.version.outputs.new-version-patch }}
 
 runs:
   using: composite
@@ -63,8 +63,8 @@ runs:
       id: version
       shell: bash
       env:
-        INCREMENT_TYPE: ${{ inputs.increment-type }}
-      run: '"$GITHUB_ACTION_PATH/version_script.sh" "$INCREMENT_TYPE"'
+        INPUT_INCREMENT-TYPE: ${{ inputs.increment-type }}
+      run: node "$GITHUB_ACTION_PATH/src/index.js"
 
     - name: Setup Java
       if: inputs.setup-java == 'true'
@@ -82,9 +82,9 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
-        MAJOR: ${{ steps.version.outputs.major_version }}
-        MINOR: ${{ steps.version.outputs.minor_version }}
-        PATCH: ${{ steps.version.outputs.patch_version }}
+        MAJOR: ${{ steps.version.outputs.new-version-major }}
+        MINOR: ${{ steps.version.outputs.new-version-minor }}
+        PATCH: ${{ steps.version.outputs.new-version-patch }}
       run: ./gradlew incrementBuildMeta -Dversion.major="$MAJOR" -Dversion.minor="$MINOR" -Dversion.patch="$PATCH"
 
     - name: Update release notes

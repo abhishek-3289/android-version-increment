@@ -33,19 +33,19 @@ jobs:
       - name: Calculate next version
         id: version
         env:
-          INCREMENT_TYPE: ${{ inputs.increment-type }}
-        run: ./version_script.sh "$INCREMENT_TYPE"
+          INPUT_INCREMENT-TYPE: ${{ inputs.increment-type }}
+        run: node src/index.js
 
       - name: Create release
         env:
-          TAG: v${{ steps.version.outputs.new_version }}
+          TAG: v${{ steps.version.outputs.new-version }}
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
 
       - name: Move major version tag
         env:
-          VERSION: ${{ steps.version.outputs.new_version }}
-          MAJOR: ${{ steps.version.outputs.major_version }}
+          VERSION: ${{ steps.version.outputs.new-version }}
+          MAJOR: ${{ steps.version.outputs.new-version-major }}
         run: |
           git tag -f "v$MAJOR" "$GITHUB_SHA"
           git push -f origin "refs/tags/v$MAJOR"
