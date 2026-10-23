@@ -39,6 +39,7 @@ Plugin for android versioning https://plugins.gradle.org/plugin/net.thauvin.erik
 Only tags of the form `MAJOR.MINOR.PATCH` or `vMAJOR.MINOR.PATCH` are considered; pre-release and
 other tags are ignored. If no such tag exists, `v0.0.0` is used. Tags are fetched from the remote by
 the action itself, so the default shallow `actions/checkout` works.
+The version is calculated by [`src/index.js`](src/index.js) using the `node` already on the runner (any Node 16 or newer), so no extra setup step is needed.
 
 ```groovy
 tasks.register('updateReleaseNotesVersion') {
@@ -81,10 +82,10 @@ tasks.register('updateReleaseNotesVersion') {
 ## Development 🛠️
 
 ```bash
-bash tests/version_script_test.sh
+npm test
 ```
 
-The tests create throwaway git repositories, so they need only `git` and `bash`. To try the Gradle side locally:
+The action is plain Node 24 with no dependencies, so there is nothing to install. The tests create throwaway git repositories, so they need only `git` and Node. To try the Gradle side locally:
 
 ```bash
 cd examples/gradle-project
@@ -93,5 +94,5 @@ cd examples/gradle-project
 
 | Workflow | Trigger | What it does |
 |:---------|:--------|:-------------|
-| [CI](.github/workflows/ci.yml) | push to `main`, pull requests | ShellCheck, actionlint, unit tests on Ubuntu and macOS, and an integration run of the action against `examples/gradle-project`. |
-| [Release](.github/workflows/release.yml) | manual (`patch` / `minor` / `major`) | Runs CI, calculates the next version with this action's own script, publishes a GitHub release with generated notes, and moves the `vMAJOR` tag. |
+| [CI](.github/workflows/ci.yml) | push to `main`, pull requests | Syntax check, actionlint, unit tests on Ubuntu and macOS, and an integration run of the action against `examples/gradle-project`. |
+| [Release](.github/workflows/release.yml) | manual (`patch` / `minor` / `major`) | Runs CI, calculates the next version with this action's own `src/index.js`, publishes a GitHub release with generated notes, and moves the `vMAJOR` tag. |
