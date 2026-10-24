@@ -15,7 +15,7 @@
         uses: actions/checkout@v7
 
       - name: Update version
-        uses: abhishek-3289/android-version-increment@v1
+        uses: appshipkit/android-version-increment@v1
         with:
           increment-type: patch
           update-release-notes: true

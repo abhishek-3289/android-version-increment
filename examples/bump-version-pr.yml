@@ -22,7 +22,7 @@ jobs:
 
       - name: Update version
         id: version
-        uses: abhishek-3289/android-version-increment@v1
+        uses: appshipkit/android-version-increment@v1
         with:
           increment-type: ${{ inputs.increment-type }}
           update-release-notes: true
